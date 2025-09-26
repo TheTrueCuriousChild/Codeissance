@@ -13,7 +13,8 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         phone=user.phone,
         email=user.email,
         is_donor=user.is_donor,
-        is_hospital=user.is_hospital
+        is_hospital=user.is_hospital,
+        role=user.role
     )
     db.add(db_user)
     db.commit()
@@ -43,18 +44,26 @@ def create_donor_profile(db: Session, donor: schemas.DonorProfileCreate) -> mode
 def get_donor_by_id(db: Session, donor_id: int) -> Optional[models.DonorProfile]:
     return db.query(models.DonorProfile).filter(models.DonorProfile.id == donor_id).first()
 
-def get_available_donors(db: Session, blood_group: str) -> List[models.DonorProfile]:
+def get_available_blood_donors(db: Session, blood_group: str) -> List[models.DonorProfile]:
     return db.query(models.DonorProfile).filter(
         models.DonorProfile.blood_group == blood_group,
+        models.DonorProfile.donor_type.in_(["blood", "both"]),
         models.DonorProfile.availability == True,
         models.DonorProfile.consent_emergency == True
     ).all()
 
-# New: Mark donor notified for a request
+def get_available_organ_donors(db: Session, organ_type: str) -> List[models.DonorProfile]:
+    return db.query(models.DonorProfile).filter(
+        models.DonorProfile.organs_available.ilike(f"%{organ_type}%"),
+        models.DonorProfile.donor_type.in_(["organ", "both"]),
+        models.DonorProfile.availability == True,
+        models.DonorProfile.consent_emergency == True
+    ).all()
+
+# Mark donor notified
 def mark_donor_notified(db: Session, donor_id: int, request_id: int):
     donor = get_donor_by_id(db, donor_id)
     if donor:
-        # Here you could log donor notification in a table or just update a timestamp
         donor.last_notified_request = request_id
         donor.last_notified_at = datetime.utcnow()
         db.commit()
@@ -98,10 +107,18 @@ def update_inventory_units(db: Session, inventory_id: int, units: int) -> models
 def get_inventory_by_hospital(db: Session, hospital_id: int) -> List[models.Inventory]:
     return db.query(models.Inventory).filter(models.Inventory.hospital_id == hospital_id).all()
 
-def get_inventory_by_hospital_blood(db: Session, hospital_id: int, blood_group: str):
+def get_inventory_blood_group(db: Session, hospital_id: int, blood_group: str):
     return db.query(models.Inventory).filter(
         models.Inventory.hospital_id == hospital_id,
-        models.Inventory.blood_group == blood_group
+        models.Inventory.blood_group == blood_group,
+        models.Inventory.type == "blood"
+    ).first()
+
+def get_inventory_organ(db: Session, hospital_id: int, organ_type: str):
+    return db.query(models.Inventory).filter(
+        models.Inventory.hospital_id == hospital_id,
+        models.Inventory.organ_type == organ_type,
+        models.Inventory.type == "organ"
     ).first()
 
 def get_all_inventories(db: Session) -> List[models.Inventory]:
@@ -124,7 +141,6 @@ def get_request_by_id(db: Session, request_id: int) -> Optional[models.Request]:
 def get_pending_requests(db: Session) -> List[models.Request]:
     return db.query(models.Request).filter(models.Request.fulfilled == False).all()
 
-# New: Mark request fulfilled
 def mark_request_fulfilled(db: Session, request_id: int):
     req = get_request_by_id(db, request_id)
     if req:
@@ -147,3 +163,31 @@ def create_offer(db: Session, offer: schemas.OfferCreate) -> models.Offer:
 
 def get_offers_by_request(db: Session, request_id: int) -> List[models.Offer]:
     return db.query(models.Offer).filter(models.Offer.request_id == request_id).all()
+
+
+# ------------------------
+# Donation Logs
+# ------------------------
+def create_donation_log(db: Session, log: schemas.DonationLogCreate) -> models.DonationLog:
+    db_log = models.DonationLog(**log.dict(), donation_date=datetime.utcnow())
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+def get_donation_logs_by_donor(db: Session, donor_id: int) -> List[models.DonationLog]:
+    return db.query(models.DonationLog).filter(models.DonationLog.donor_id == donor_id).all()
+
+
+# ------------------------
+# Notification Logs
+# ------------------------
+def create_notification_log(db: Session, log: schemas.NotificationLogCreate) -> models.NotificationLog:
+    db_log = models.NotificationLog(**log.dict(), sent_at=datetime.utcnow())
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+def get_notifications_by_donor(db: Session, donor_id: int) -> List[models.NotificationLog]:
+    return db.query(models.NotificationLog).filter(models.NotificationLog.donor_id == donor_id).all()

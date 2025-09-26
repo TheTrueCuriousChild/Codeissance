@@ -47,7 +47,7 @@ def seed_data():
         )
 
         # ------------------------
-        # Donors (all mapped to your WhatsApp number)
+        # Donors
         # ------------------------
         donors = []
         donor_data = [
@@ -67,6 +67,7 @@ def seed_data():
             donor_profile = models.DonorProfile(
                 user=donor_user,
                 blood_group=blood_group,
+                donor_type="blood",   # required now
                 latitude=lat,
                 longitude=lon,
                 availability=True,
@@ -78,6 +79,7 @@ def seed_data():
         # Commit all
         # ------------------------
         db.add_all([hospital1_user, hospital2_user] + [d.user for d in donors])
+        db.add_all(donors)  # <--- important: add donor profiles too
         db.commit()
 
         logger.info("✅ Seed data inserted successfully!")

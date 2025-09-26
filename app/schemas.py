@@ -31,7 +31,9 @@ class UserResponse(UserBase):
 # Donor Profile schemas
 # ------------------------
 class DonorProfileBase(BaseModel):
-    blood_group: str = Field(..., example="A+")
+    blood_group: Optional[str] = Field(None, example="A+")
+    donor_type: str = Field("blood", example="blood")  # blood / organ / both
+    organs_available: Optional[str] = Field(None, example="kidney,liver")
     last_donation: Optional[datetime] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -73,9 +75,12 @@ class HospitalProfileResponse(HospitalProfileBase):
 # Inventory schemas
 # ------------------------
 class InventoryBase(BaseModel):
-    blood_group: str
+    blood_group: Optional[str] = None
+    organ_type: Optional[str] = None
+    type: str = "blood"  # blood / organ
     units_available: int
     threshold: int = 5
+    expiry_date: Optional[datetime] = None
 
 class InventoryCreate(InventoryBase):
     hospital_id: int
@@ -92,9 +97,12 @@ class InventoryResponse(InventoryBase):
 # Request schemas
 # ------------------------
 class RequestBase(BaseModel):
-    blood_group: str
+    request_type: str = "blood"  # blood / organ
+    blood_group: Optional[str] = None
+    organ_type: Optional[str] = None
     units_needed: int
     urgency: Optional[str] = "medium"
+    details: Optional[str] = None
     fulfilled: Optional[bool] = False
 
 class RequestCreate(RequestBase):
@@ -124,5 +132,49 @@ class OfferResponse(OfferBase):
     request_id: int
     donor_id: int
     notified_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ------------------------
+# Donation Log schemas
+# ------------------------
+class DonationLogBase(BaseModel):
+    donation_type: str = "blood"  # blood / organ
+    blood_group: Optional[str] = None
+    organ_type: Optional[str] = None
+    units: int = 1
+
+class DonationLogCreate(DonationLogBase):
+    donor_id: int
+    hospital_id: int
+    request_id: Optional[int] = None
+
+class DonationLogResponse(DonationLogBase):
+    id: int
+    donor_id: int
+    hospital_id: int
+    request_id: Optional[int]
+    donation_date: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ------------------------
+# Notification Log schemas
+# ------------------------
+class NotificationLogBase(BaseModel):
+    method: str = "sms"  # sms / email / app
+    status: str = "sent"  # sent / delivered / failed
+
+class NotificationLogCreate(NotificationLogBase):
+    donor_id: int
+    request_id: int
+
+class NotificationLogResponse(NotificationLogBase):
+    id: int
+    donor_id: int
+    request_id: int
+    sent_at: datetime
 
     model_config = {"from_attributes": True}
