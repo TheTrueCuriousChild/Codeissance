@@ -1,0 +1,9 @@
+# Dependencies for the Blood Donation Platform
+
+# API Gateway dependencies
+fastapi
+grpcio
+pydantic
+
+# gRPC services dependencies
+grpcio
