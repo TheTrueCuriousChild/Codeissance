@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+
+message MatchRequest {
+  string donor_id = 1;
+  string recipient_id = 2;
+}
+
+message MatchResponse {
+  string match_status = 1;
+}
+
+service MatchService {
+  rpc FindMatch(MatchRequest) returns (MatchResponse);
+}

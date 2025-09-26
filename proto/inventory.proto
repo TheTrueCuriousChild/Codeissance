@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+message InventoryRequest {
+  string item_id = 1;
+}
+
+message InventoryResponse {
+  string status = 1;
+}
+
+service InventoryService {
+  rpc CheckInventory(InventoryRequest) returns (InventoryResponse);
+}

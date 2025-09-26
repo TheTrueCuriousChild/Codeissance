@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+
+message NotificationRequest {
+  string message = 1;
+  string recipient = 2;
+}
+
+message NotificationResponse {
+  string status = 1;
+}
+
+service NotificationService {
+  rpc SendNotification(NotificationRequest) returns (NotificationResponse);
+}
